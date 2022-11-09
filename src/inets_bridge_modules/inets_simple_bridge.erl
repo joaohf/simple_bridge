@@ -91,8 +91,13 @@ query_params(Req) ->
     [{Key, Value} || {Key, Value} <- Query, Key /= []].
 
 post_params(Req) ->
+    io:format("Req ~p~n", [Req]),
     Body = request_body(Req),
-    Query = handle_parse_qs(Body, ?PARSE_QS(Body)),
+    Query = case Body of
+        {last, Data, undefined} ->
+            L = binary_to_list(Data),
+            handle_parse_qs(Body, ?PARSE_QS(L))
+    end,
     error_logger:info_msg("Body: ~p~nQuery: ~p",[Body, Query]),
     [{Key, Value} || {Key, Value} <- Query, Key /= []].
 
@@ -112,7 +117,9 @@ recv_from_socket(Length, Timeout, Req) ->
     Socket = socket(Req),
     case gen_tcp:recv(Socket, Length, Timeout) of
         {ok, Data} -> Data;
-        _ -> exit(normal)
+        R ->
+            io:format("recv reason ~p", [R]) ,
+            exit(normal)
     end.
 
 protocol_version(Req) ->
